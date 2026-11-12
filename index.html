@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발췌기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root { --bg:#f3f2ee; --ink:#1c1b19; --panel:#ffffff; --line:#d9d7d0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1d1c1a; --ink:#ecebe6; --panel:#262522; --line:#3a3935; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif; }
+  .app { display:grid; grid-template-columns:340px 1fr; gap:28px; padding:24px; max-width:1200px; margin:0 auto; }
+  @media (max-width: 860px) { .app { grid-template-columns:1fr; padding:16px; } }
+  form { display:flex; flex-direction:column; gap:14px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+  textarea { font:inherit; font-weight:400; font-size:14px; line-height:1.5; padding:9px 11px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); resize:vertical; }
+  input[type=color] { width:64px; height:40px; padding:3px; border:1px solid var(--line); border-radius:6px; background:var(--panel); cursor:pointer; }
+  input[type=color]:focus-visible, input[type=range]:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline:2px solid #6b6a5c; outline-offset:1px; }
+  details { font-size:12px; border:1px solid var(--line); border-radius:6px; background:var(--panel); }
+  summary { cursor:pointer; padding:7px 11px; font-weight:600; }
+  .rows { display:grid; grid-template-columns:34px 1fr 48px; gap:6px 10px; align-items:center; padding:4px 11px 11px; }
+  .rows output { text-align:right; font-variant-numeric:tabular-nums; }
+  .rows input[type=range] { width:100%; }
+  .btns { display:flex; gap:8px; }
+  button { font:inherit; font-size:14px; font-weight:600; padding:10px 14px; border-radius:6px; border:1px solid var(--ink); background:var(--ink); color:var(--bg); cursor:pointer; }
+  button.ghost { background:transparent; color:var(--ink); border-color:var(--line); }
+  .scaler { width:100%; aspect-ratio:4/5; position:relative; overflow:hidden; border:1px solid var(--line); background:#fff; }
+
+  /* 고정 템플릿: 1200 x 1500 기준 */
+  #poster { position:absolute; left:0; top:0; width:1200px; height:1500px; background:#fff; color:#1c1b19; transform-origin:0 0; font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif; word-break:keep-all; }
+  #poster .box { position:absolute; left:93px; top:88px; width:46px; height:46px; background:#eeece0; }
+  #poster .t { position:absolute; white-space:pre-wrap; }
+  #o-t1 { left:612px; top:78px; width:510px; }
+  #o-t2 { right:95px; top:206px; width:510px; text-align:right; }
+  #o-body { left:612px; top:372px; width:508px; }
+  #o-who { left:93px; top:1254px; }
+  #o-desc { left:93px; top:1352px; width:1020px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <form onsubmit="return false" id="form">
+    <div class="field"><label>제목 (왼쪽 정렬)<textarea id="in-t1" rows="2"></textarea></label><details id="ctl-t1"></details></div>
+    <div class="field"><label>강조 제목 (오른쪽 정렬)<textarea id="in-t2" rows="2"></textarea></label><details id="ctl-t2"></details></div>
+    <div class="field"><label>본문 (빈 줄로 문단 구분)<textarea id="in-body" rows="10"></textarea></label><details id="ctl-body"></details></div>
+    <div class="field"><label>이름 / 팀<textarea id="in-who" rows="2"></textarea></label><details id="ctl-who"></details></div>
+    <div class="field"><label>하단 설명<textarea id="in-desc" rows="3"></textarea></label><details id="ctl-desc"></details></div>
+    <label>왼쪽 상단 사각형 색상<input type="color" id="in-box" value="#eeece0"></label>
+    <div class="btns">
+      <button type="button" id="save">PNG 저장</button>
+      <button type="button" id="reset" class="ghost">예시로 되돌리기</button>
+    </div>
+  </form>
+
+  <div class="stage">
+    <div class="scaler" id="scaler">
+      <div id="poster">
+        <div class="box" id="o-box"></div>
+        <div class="t" id="o-t1"></div>
+        <div class="t" id="o-t2"></div>
+        <div class="t" id="o-body"></div>
+        <div class="t" id="o-who"></div>
+        <div class="t" id="o-desc"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const SAMPLE = {
+  t1: "현상의 흐름이\n머무는",
+  t2: "고요의\n사유",
+  body: "차분히 가라앉은 감각 속에서 사유는 파동처럼 번져 나간다. 파동의 형상은 단순한 인상을 넘어 고요한 울림을 낳고, 순간의 호흡과 미세한 떨림을 드러내며 사유를 심연으로 이끈다.\n\n작품은 단순한 대상에 머무르지 않는다.\n머무는 시간 속에서 체화되는 경험으로 확장되며, 빛과 공기, 시선과 감정이 교차하며 직조하는 결은 서서히 공간을 채운다.\n\n고요 속에서 자신을 비추고, 사유의 결을 따라가며 내면과 마주하는 순간, 관람객은 자기 안에 잠재된 고유한 빛과 호흡을 발견한다.",
+  who: "정종영 & 박혁\nmudworks",
+  desc: "흙을 기반으로 자연적 소재들을 현대적으로 해석하며, 다양한 공간에 예술적 감각을 더한다.\n흙의 물성을 활용한 유연함과 구조적인 안정성으로 시간이 지나도 변치 않는 미적 가치를 추구한다.",
+  box: "#eeece0"
+};
+// w 굵기, fs 크기(px), ls 자간(px), lh 행간(px)
+const STYLE_DEFAULT = {
+  t1:   { w:700, fs:52, ls:-0.5, lh:66 },
+  t2:   { w:700, fs:52, ls:-0.5, lh:66 },
+  body: { w:400, fs:22, ls:-0.3, lh:35 },
+  who:  { w:700, fs:22, ls:0,    lh:33 },
+  desc: { w:400, fs:21, ls:-0.3, lh:34 }
+};
+const KEYS = Object.keys(STYLE_DEFAULT);
+const PROPS = [
+  ["w",  "굵기", 100, 900, 100, ""],
+  ["fs", "크기", 12,  90,  1,   "px"],
+  ["ls", "자간", -3,  5,   0.1, "px"],
+  ["lh", "행간", 16,  120, 1,   "px"]
+];
+const KEY = "excerpt-maker-v2";
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+let styles = clone(STYLE_DEFAULT);
+
+function load() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  const out = Object.assign({}, SAMPLE, saved || {});
+  if (saved && saved.s) KEYS.forEach(k => Object.assign(styles[k], saved.s[k] || {}));
+  return out;
+}
+function persist() {
+  const data = { box: $("in-box").value, s: styles };
+  KEYS.forEach(k => data[k] = $("in-" + k).value);
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+}
+function fmt(p, v) { return p === "ls" ? Number(v).toFixed(1) : String(v); }
+
+function buildControls() {
+  KEYS.forEach(k => {
+    const d = $("ctl-" + k);
+    d.innerHTML = "<summary>서체 조정 (Pretendard)</summary><div class='rows'></div>";
+    const rows = d.querySelector(".rows");
+    PROPS.forEach(([p, name, min, max, step, unit]) => {
+      const span = document.createElement("span"); span.textContent = name;
+      const r = document.createElement("input");
+      r.type = "range"; r.min = min; r.max = max; r.step = step; r.value = styles[k][p];
+      r.setAttribute("aria-label", $("in-" + k).closest("label").firstChild.textContent + " " + name);
+      const o = document.createElement("output"); o.textContent = fmt(p, styles[k][p]) + unit;
+      r.addEventListener("input", () => {
+        styles[k][p] = Number(r.value);
+        o.textContent = fmt(p, r.value) + unit;
+        render();
+      });
+      r.dataset.k = k; r.dataset.p = p;
+      rows.append(span, r, o);
+    });
+  });
+}
+function syncControls() {
+  document.querySelectorAll(".rows input[type=range]").forEach(r => {
+    const k = r.dataset.k, p = r.dataset.p, unit = PROPS.find(x => x[0] === p)[5];
+    r.value = styles[k][p];
+    r.nextElementSibling.textContent = fmt(p, styles[k][p]) + unit;
+  });
+}
+function render() {
+  KEYS.forEach(k => {
+    const el = $("o-" + k), s = styles[k];
+    el.textContent = $("in-" + k).value;
+    el.style.fontWeight = s.w;
+    el.style.fontSize = s.fs + "px";
+    el.style.letterSpacing = s.ls + "px";
+    el.style.lineHeight = s.lh + "px";
+  });
+  $("o-box").style.background = $("in-box").value;
+  persist();
+}
+function fit() { $("poster").style.transform = "scale(" + ($("scaler").clientWidth / 1200) + ")"; }
+
+const init = load();
+KEYS.forEach(k => { $("in-" + k).value = init[k]; $("in-" + k).addEventListener("input", render); });
+$("in-box").value = init.box;
+$("in-box").addEventListener("input", render);
+buildControls();
+
+$("reset").addEventListener("click", () => {
+  KEYS.forEach(k => $("in-" + k).value = SAMPLE[k]);
+  $("in-box").value = SAMPLE.box;
+  styles = clone(STYLE_DEFAULT);
+  syncControls();
+  render();
+});
+$("save").addEventListener("click", async () => {
+  const poster = $("poster"), prev = poster.style.transform;
+  poster.style.transform = "none";
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = await html2canvas(poster, { width:1200, height:1500, scale:1, backgroundColor:"#ffffff", useCORS:true });
+    const a = document.createElement("a");
+    a.download = "excerpt.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  } catch (e) {
+    alert("이미지 저장에 실패했어요. 다시 시도해 주세요.");
+  } finally {
+    poster.style.transform = prev;
+  }
+});
+window.addEventListener("resize", fit);
+render(); fit();
+</script>
+</body>
+</html>
