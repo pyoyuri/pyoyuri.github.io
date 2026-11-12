@@ -15,6 +15,11 @@
   .app { display:grid; grid-template-columns:340px 1fr; gap:28px; padding:24px; max-width:1200px; margin:0 auto; }
   @media (max-width: 860px) { .app { grid-template-columns:1fr; padding:16px; } }
   form { display:flex; flex-direction:column; gap:14px; }
+  .tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .tabs button { background:transparent; color:var(--ink); border-color:var(--line); }
+  .tabs button[aria-pressed=true] { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .pg { display:flex; flex-direction:column; gap:14px; }
+  .pg[hidden] { display:none; }
   .field { display:flex; flex-direction:column; gap:6px; }
   label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
   textarea { font:inherit; font-weight:400; font-size:14px; line-height:1.5; padding:9px 11px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); resize:vertical; }
@@ -31,25 +36,42 @@
   .scaler { width:100%; aspect-ratio:4/5; position:relative; overflow:hidden; border:1px solid var(--line); background:#fff; }
 
   /* 고정 템플릿: 1200 x 1500 기준 */
-  #poster { position:absolute; left:0; top:0; width:1200px; height:1500px; background:#fff; color:#1c1b19; transform-origin:0 0; font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif; word-break:keep-all; }
-  #poster .box { position:absolute; left:93px; top:88px; width:46px; height:46px; background:#eeece0; }
-  #poster .t { position:absolute; white-space:pre-wrap; }
+  .poster { position:absolute; left:0; top:0; width:1200px; height:1500px; background:#fff; color:#1c1b19; transform-origin:0 0; font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif; word-break:keep-all; }
+  .poster[hidden] { display:none; }
+  .poster .box { position:absolute; left:93px; top:88px; width:46px; height:46px; background:#eeece0; }
+  .poster .t { position:absolute; white-space:pre-wrap; }
   #o-t1 { left:612px; top:78px; width:510px; }
   #o-t2 { right:95px; top:206px; width:510px; text-align:right; }
   #o-body { left:612px; top:372px; width:508px; }
   #o-who { left:93px; top:1254px; }
   #o-desc { left:93px; top:1352px; width:1020px; }
+  /* 2페이지: 본문 박스 2개 (1페이지 본문 오른쪽 끝 x=1120에 맞춤) */
+  #o-p2a { left:80px; top:372px; width:480px; }
+  #o-p2b { left:640px; top:372px; width:480px; }
 </style>
 </head>
 <body>
 <div class="app">
   <form onsubmit="return false" id="form">
-    <div class="field"><label>제목 (왼쪽 정렬)<textarea id="in-t1" rows="2"></textarea></label><details id="ctl-t1"></details></div>
-    <div class="field"><label>강조 제목 (오른쪽 정렬)<textarea id="in-t2" rows="2"></textarea></label><details id="ctl-t2"></details></div>
-    <div class="field"><label>본문 (빈 줄로 문단 구분)<textarea id="in-body" rows="10"></textarea></label><details id="ctl-body"></details></div>
-    <div class="field"><label>이름 / 팀<textarea id="in-who" rows="2"></textarea></label><details id="ctl-who"></details></div>
-    <div class="field"><label>하단 설명<textarea id="in-desc" rows="3"></textarea></label><details id="ctl-desc"></details></div>
-    <label>왼쪽 상단 사각형 색상<input type="color" id="in-box" value="#eeece0"></label>
+    <div class="tabs" role="group" aria-label="페이지 선택">
+      <button type="button" id="tab1" aria-pressed="true">1페이지</button>
+      <button type="button" id="tab2" aria-pressed="false">2페이지</button>
+    </div>
+
+    <div class="pg" id="pg1">
+      <div class="field"><label>제목 (왼쪽 정렬)<textarea id="in-t1" rows="2"></textarea></label><details id="ctl-t1"></details></div>
+      <div class="field"><label>강조 제목 (오른쪽 정렬)<textarea id="in-t2" rows="2"></textarea></label><details id="ctl-t2"></details></div>
+      <div class="field"><label>본문 (빈 줄로 문단 구분)<textarea id="in-body" rows="10"></textarea></label><details id="ctl-body"></details></div>
+      <div class="field"><label>이름 / 팀<textarea id="in-who" rows="2"></textarea></label><details id="ctl-who"></details></div>
+      <div class="field"><label>하단 설명<textarea id="in-desc" rows="3"></textarea></label><details id="ctl-desc"></details></div>
+      <label>왼쪽 상단 사각형 색상<input type="color" id="in-box" value="#eeece0"></label>
+    </div>
+
+    <div class="pg" id="pg2" hidden>
+      <div class="field"><label>본문 박스 1 (왼쪽)<textarea id="in-p2a" rows="10"></textarea></label><details id="ctl-p2a"></details></div>
+      <div class="field"><label>본문 박스 2 (오른쪽)<textarea id="in-p2b" rows="10"></textarea></label><details id="ctl-p2b"></details></div>
+    </div>
+
     <div class="btns">
       <button type="button" id="save">PNG 저장</button>
       <button type="button" id="reset" class="ghost">예시로 되돌리기</button>
@@ -58,13 +80,17 @@
 
   <div class="stage">
     <div class="scaler" id="scaler">
-      <div id="poster">
+      <div class="poster" id="poster1">
         <div class="box" id="o-box"></div>
         <div class="t" id="o-t1"></div>
         <div class="t" id="o-t2"></div>
         <div class="t" id="o-body"></div>
         <div class="t" id="o-who"></div>
         <div class="t" id="o-desc"></div>
+      </div>
+      <div class="poster" id="poster2" hidden>
+        <div class="t" id="o-p2a"></div>
+        <div class="t" id="o-p2b"></div>
       </div>
     </div>
   </div>
@@ -78,17 +104,23 @@ const SAMPLE = {
   body: "차분히 가라앉은 감각 속에서 사유는 파동처럼 번져 나간다. 파동의 형상은 단순한 인상을 넘어 고요한 울림을 낳고, 순간의 호흡과 미세한 떨림을 드러내며 사유를 심연으로 이끈다.\n\n작품은 단순한 대상에 머무르지 않는다.\n머무는 시간 속에서 체화되는 경험으로 확장되며, 빛과 공기, 시선과 감정이 교차하며 직조하는 결은 서서히 공간을 채운다.\n\n고요 속에서 자신을 비추고, 사유의 결을 따라가며 내면과 마주하는 순간, 관람객은 자기 안에 잠재된 고유한 빛과 호흡을 발견한다.",
   who: "정종영 & 박혁\nmudworks",
   desc: "흙을 기반으로 자연적 소재들을 현대적으로 해석하며, 다양한 공간에 예술적 감각을 더한다.\n흙의 물성을 활용한 유연함과 구조적인 안정성으로 시간이 지나도 변치 않는 미적 가치를 추구한다.",
+  p2a: "2페이지 왼쪽 본문을 입력하세요.\n\n빈 줄로 문단이 나뉩니다.",
+  p2b: "2페이지 오른쪽 본문을 입력하세요.",
   box: "#eeece0"
 };
 // w 굵기, fs 크기(px), ls 자간(px), lh 행간(px)
+const BODY_STYLE = { w:400, fs:22, ls:-0.3, lh:35 };
 const STYLE_DEFAULT = {
   t1:   { w:700, fs:52, ls:-0.5, lh:66 },
   t2:   { w:700, fs:52, ls:-0.5, lh:66 },
-  body: { w:400, fs:22, ls:-0.3, lh:35 },
+  body: Object.assign({}, BODY_STYLE),
   who:  { w:700, fs:22, ls:0,    lh:33 },
-  desc: { w:400, fs:21, ls:-0.3, lh:34 }
+  desc: { w:400, fs:21, ls:-0.3, lh:34 },
+  p2a:  Object.assign({}, BODY_STYLE),
+  p2b:  Object.assign({}, BODY_STYLE)
 };
-const KEYS = Object.keys(STYLE_DEFAULT);
+const PAGE_KEYS = { 1: ["t1","t2","body","who","desc"], 2: ["p2a","p2b"] };
+const KEYS = PAGE_KEYS[1].concat(PAGE_KEYS[2]);
 const PROPS = [
   ["w",  "굵기", 100, 900, 100, ""],
   ["fs", "크기", 12,  90,  1,   "px"],
@@ -100,6 +132,7 @@ const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
 
 let styles = clone(STYLE_DEFAULT);
+let page = 1;
 
 function load() {
   let saved = null;
@@ -155,7 +188,18 @@ function render() {
   $("o-box").style.background = $("in-box").value;
   persist();
 }
-function fit() { $("poster").style.transform = "scale(" + ($("scaler").clientWidth / 1200) + ")"; }
+function fit() {
+  const sc = "scale(" + ($("scaler").clientWidth / 1200) + ")";
+  $("poster1").style.transform = sc;
+  $("poster2").style.transform = sc;
+}
+function setPage(n) {
+  page = n;
+  $("pg1").hidden = n !== 1; $("pg2").hidden = n !== 2;
+  $("poster1").hidden = n !== 1; $("poster2").hidden = n !== 2;
+  $("tab1").setAttribute("aria-pressed", n === 1);
+  $("tab2").setAttribute("aria-pressed", n === 2);
+}
 
 const init = load();
 KEYS.forEach(k => { $("in-" + k).value = init[k]; $("in-" + k).addEventListener("input", render); });
@@ -163,21 +207,23 @@ $("in-box").value = init.box;
 $("in-box").addEventListener("input", render);
 buildControls();
 
+$("tab1").addEventListener("click", () => setPage(1));
+$("tab2").addEventListener("click", () => setPage(2));
+
 $("reset").addEventListener("click", () => {
-  KEYS.forEach(k => $("in-" + k).value = SAMPLE[k]);
-  $("in-box").value = SAMPLE.box;
-  styles = clone(STYLE_DEFAULT);
+  PAGE_KEYS[page].forEach(k => { $("in-" + k).value = SAMPLE[k]; styles[k] = clone(STYLE_DEFAULT[k]); });
+  if (page === 1) $("in-box").value = SAMPLE.box;
   syncControls();
   render();
 });
 $("save").addEventListener("click", async () => {
-  const poster = $("poster"), prev = poster.style.transform;
+  const poster = $("poster" + page), prev = poster.style.transform;
   poster.style.transform = "none";
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const canvas = await html2canvas(poster, { width:1200, height:1500, scale:1, backgroundColor:"#ffffff", useCORS:true });
     const a = document.createElement("a");
-    a.download = "excerpt.png";
+    a.download = "excerpt-page" + page + ".png";
     a.href = canvas.toDataURL("image/png");
     a.click();
   } catch (e) {
